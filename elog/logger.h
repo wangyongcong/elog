@@ -2,13 +2,13 @@
 #define WYC_HEADER_LOGGER
 
 #include <cstdint>
+#include <string>
 
 namespace wyc
 {
 
 enum LOG_LEVEL
 {
-	LOG_TRACE,
 	LOG_DEBUG,
 	LOG_INFO,
 	LOG_WARN,
@@ -18,13 +18,15 @@ enum LOG_LEVEL
 	LOG_LEVEL_COUNT,
 };
 
+#define DEFAULT_ROTATE_SIZE (4*1024*1024)
+
 class xlogger
 {
 public:
 	xlogger();
 	~xlogger();
-	bool create(const char* file_path, size_t rotation_size, LOG_LEVEL lvl);
-	void write(LOG_LEVEL lvl, const char* record, size_t size);
+	bool create(const char* log_name, const char* save_path=0, size_t rotate_size = 0, LOG_LEVEL lvl = LOG_DEBUG);
+	void write(const char* record, size_t size);
 	void flush();
 	void trace();
 	void debug();
@@ -37,6 +39,11 @@ public:
 private:
 	FILE *m_hfile;
 	std::string m_path;
+	std::string m_fname;
+	size_t m_cur_size;
+	size_t m_rotate_size;
+	unsigned m_rotate_cnt;
+	LOG_LEVEL m_level;
 };
 
 
