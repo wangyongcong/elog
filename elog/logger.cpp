@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <ctime>
+#include <cassert>
 #include "logger.h"
 
 namespace wyc
@@ -40,17 +41,15 @@ bool xlogger::create(const char* log_name, const char* save_path, size_t rotate_
 		if (m_path[m_path.size() - 1] != '\\')
 			m_path += "\\";
 	}
-	m_fname = log_name;
-	std::string file_path;
-	file_path.reserve(m_path.size() + m_fname.size() + 5);
-	file_path += m_path;
-	file_path += m_fname;
-	file_path += ".log";
+	m_logname = log_name;
+	m_curfile = m_path;
+	m_curfile += m_logname;
+	m_curfile += ".log";
 	if (m_hfile) {
 		fclose(m_hfile);
 		m_hfile = 0;
 	}
-	m_hfile = _fsopen(file_path.c_str(), "w", _SH_DENYWR);
+	m_hfile = _fsopen(m_curfile.c_str(), "w", _SH_DENYWR);
 	if (!m_hfile) {
 		// build the directory tree
 		std::string cmd = "mkdir ";
@@ -58,7 +57,7 @@ bool xlogger::create(const char* log_name, const char* save_path, size_t rotate_
 		if (std::system(cmd.c_str()))
 			return false;
 		// try again!
-		m_hfile = _fsopen(file_path.c_str(), "w", _SH_DENYWR);
+		m_hfile = _fsopen(m_curfile.c_str(), "w", _SH_DENYWR);
 		if (!m_hfile)
 			return false;
 	}
@@ -72,22 +71,53 @@ bool xlogger::create(const char* log_name, const char* save_path, size_t rotate_
 	return true;
 }
 
-void xlogger::write(const char* record, size_t size)
+void xlogger::_write(LOG_LEVEL lvl, const char* record, size_t size)
 {
-	if (!m_hfile) 
-		return;
-	if (m_cur_size + size < m_rotate_size)
-	{
-		m_cur_size += size;
-	}
-	else
+	assert(m_hfile);
+	time_t rawtime = std::time(NULL);
+	tm *t = std::localtime(&rawtime);
+	size += 32; // timestamp(22) and level tag name(8)
+	if (m_cur_size + size >= m_rotate_size)
 	{
 		// rotate
+		fclose(m_hfile);
+		m_hfile = 0;
+		m_rotate_cnt += 1;
+		std::string bak_file = m_path;
+		bak_file += m_logname;
+		bak_file += std::to_string(m_rotate_cnt);
+		bak_file += ".log";
+		if (std::rename(m_curfile.c_str(), bak_file.c_str())) {
+			// failed to rename	
+			std::remove(bak_file.c_str());
+			// try again
+			if (std::rename(m_curfile.c_str(), bak_file.c_str()))
+			{
+				// failed
+			}	
+		}
+		m_cur_size = 0;
+		m_hfile = _fsopen(m_curfile.c_str(), "w", _SH_DENYWR);
+		if (!m_hfile)
+			return;
 	}
+	m_cur_size += size;
+	fprintf(m_hfile, "[%04d-%02d-%02d %02d:%02d:%02d] [%s] %s\n",
+		t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
+		s_log_lvl_tag[lvl], record);
 }
 
-void xlogger::flush()
+void xlogger::_write(LOG_LEVEL lvl, const char *fmt, va_list args)
 {
+	assert(m_hfile);
+	char buff[256];
+	int sz = 255;
+	int cnt = ::vsprintf_s(buff, sz, fmt, args);
+	if (cnt < 0) 
+		return;
+	assert(cnt <= sz);
+	buff[cnt] = 0;
+	_write(lvl, buff, cnt);
 }
 
 }; // end of namesapce wyc
