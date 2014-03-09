@@ -103,7 +103,7 @@ void xlogger::_write(LOG_LEVEL lvl, const char* record, size_t size)
 	}
 	m_cur_size += size;
 	fprintf(m_hfile, "[%04d-%02d-%02d %02d:%02d:%02d] [%s] %s\n",
-		t->tm_year, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
+		t->tm_year+1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
 		s_log_lvl_tag[lvl], record);
 }
 

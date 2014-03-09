@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "elog", "elog\elog.vcxproj", "{0D938414-1C41-4C3F-A0D2-3708C09AAD7F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Test", "Test\Test.vcxproj", "{547CC44D-F33F-4CE3-BF18-33F089FC9547}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0D938414-1C41-4C3F-A0D2-3708C09AAD7F} = {0D938414-1C41-4C3F-A0D2-3708C09AAD7F}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
