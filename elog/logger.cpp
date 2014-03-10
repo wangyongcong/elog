@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <ctime>
 #include <cassert>
+#include <sys/timeb.h>
 #include "logger.h"
 
 namespace wyc
@@ -74,9 +75,11 @@ bool xlogger::create(const char* log_name, const char* save_path, size_t rotate_
 void xlogger::_write(LOG_LEVEL lvl, const char* record, size_t size)
 {
 	assert(m_hfile);
-	time_t rawtime = std::time(NULL);
-	tm *t = std::localtime(&rawtime);
-	size += 32; // timestamp(22) and level tag name(8)
+	timeb rawtime;	
+	ftime(&rawtime);
+	rawtime.time = std::time(NULL);
+	tm *t = std::localtime(&rawtime.time);
+	size += 35; // timestamp(25) and level tag name(7)
 	if (m_cur_size + size >= m_rotate_size)
 	{
 		// rotate
@@ -102,8 +105,8 @@ void xlogger::_write(LOG_LEVEL lvl, const char* record, size_t size)
 			return;
 	}
 	m_cur_size += size;
-	fprintf(m_hfile, "[%04d-%02d-%02d %02d:%02d:%02d] [%s] %s\n",
-		t->tm_year+1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec,
+	fprintf(m_hfile, "[%04d-%02d-%02d %02d:%02d:%02d.%03d] [%s] %s\n",
+		t->tm_year+1900, t->tm_mon, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, rawtime.millitm,
 		s_log_lvl_tag[lvl], record);
 }
 
